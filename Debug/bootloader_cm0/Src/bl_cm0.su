@@ -1,0 +1,9 @@
+../Core/Inc/cm_boot.h:31:20:disable_unpend_all_ints	16	static
+../Core/Inc/cm_boot.h:106:20:vectable_setup	16	static
+../Core/Inc/cm_boot.h:118:20:app_start	24	static,ignoring_inline_asm
+../bootloader_cm0/Src/bl_cm0.c:18:6:bl_usart_printf	104	static
+../bootloader_cm0/Src/bl_cm0.c:35:6:bl_jump_to_app	16	static
+../bootloader_cm0/Src/bl_cm0.c:52:6:bl_erase_20kB_mem	24	static
+../bootloader_cm0/Src/bl_cm0.c:69:6:bl_write_mem_256_bytes	32	static
+../bootloader_cm0/Src/bl_cm0.c:100:6:bl_execute_cmd	16	static
+../bootloader_cm0/Src/bl_cm0.c:123:6:bl_data_frame_parser	16	static
