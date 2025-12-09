@@ -8,17 +8,7 @@
 
 #include "crc.h"
 
-/*
- * CRC-8 Hesaplama adımları:
- *
- * 1. 8 bitlik mesaj alınır
- * 2. Mesajın sonuna 8 adet 0 eklenir (padding)
- * 3. Mesajın ve bölücü polinomun ilk '1'lerini aynı hizaya getir.
- * 4. Hizalanan polinom ve mesaj byte'larının her biti için XOR işlemi yap.
- * 5. Her bitin XOR sonucu ayrı birer sonuç olarak çıkar ve toplam sonuç byte'ında her biri bir biti temsil eder.
- */
-
-
+// CRC8 Calculation function
 uint8_t crc_calc_crc8(uint8_t* message, uint16_t length)
 {
 	uint8_t crc 	 = 0;					// CRC value initialization

@@ -9542,10 +9542,10 @@ void bl_execute_cmd(uint8_t cmd)
  8003398:	bd80      	pop	{r7, pc}
 
 0800339a <crc_calc_crc8>:
- * 5. Her bitin XOR sonucu ayrı birer sonuç olarak çıkar ve toplam sonuç byte'ında her biri bir biti temsil eder.
- */
 
+#include "crc.h"
 
+// CRC8 Calculation function
 uint8_t crc_calc_crc8(uint8_t* message, uint16_t length)
 {
  800339a:	b580      	push	{r7, lr}

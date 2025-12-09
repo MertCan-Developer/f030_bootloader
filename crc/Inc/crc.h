@@ -10,6 +10,7 @@
 
 #include "main.h"
 
+// CRC8 Calculation function prototype
 uint8_t crc_calc_crc8(uint8_t* message, uint16_t length);
 
 
