@@ -42,7 +42,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CRC_HandleTypeDef hcrc;
+SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 
@@ -52,6 +52,10 @@ uint8_t value;
 uint8_t DataFrame[MAX_SIZE_OF_ARRAY] = {0};
 volatile uint8_t data_ready_flag = 0;
 uint8_t command = 0;
+uint8_t msg = 85;
+uint8_t crc8 = 0;
+char bl_ack[]  = "BL_ACK\r\n\n";
+char bl_nack[] = "BL_NACK\r\n\n";
 
 /* USER CODE END PV */
 
@@ -59,7 +63,7 @@ uint8_t command = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_CRC_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,7 +103,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  MX_CRC_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart1, DataFrame, 260);
 
@@ -116,23 +120,25 @@ int main(void)
 	  if((data_ready_flag == 1) && (DataFrame[1] == BL_CMD))
 	  {
 		  data_ready_flag = 0;
-		  bl_execute_cmd(command);
+		  crc8 = crc_calc_crc8(DataFrame, 3);
+
+		  if(crc8 == DataFrame[3])
+		  {
+			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
+			  bl_execute_cmd(command);
+		  }
+		  else
+		  {
+			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+		  }
 	  }
 	  else if((data_ready_flag == 1) && (DataFrame[1] == BL_DATA))
 	  {
 
 	  }
 
-/*	  bl_usart_printf("This message from bootoader! %d\r\n", count);
-	  count++;
 
-	  if(data_ready_flag)
-	  {
-		  data_ready_flag = 0;
-		  bl_jump_to_app();
-	  }
-	  HAL_Delay(1000);
-*/
+
   }
   /* USER CODE END 3 */
 }
@@ -183,32 +189,42 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief CRC Initialization Function
+  * @brief SPI1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_CRC_Init(void)
+static void MX_SPI1_Init(void)
 {
 
-  /* USER CODE BEGIN CRC_Init 0 */
+  /* USER CODE BEGIN SPI1_Init 0 */
 
-  /* USER CODE END CRC_Init 0 */
+  /* USER CODE END SPI1_Init 0 */
 
-  /* USER CODE BEGIN CRC_Init 1 */
+  /* USER CODE BEGIN SPI1_Init 1 */
 
-  /* USER CODE END CRC_Init 1 */
-  hcrc.Instance = CRC;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
-  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_1LINE;
+  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN CRC_Init 2 */
+  /* USER CODE BEGIN SPI1_Init 2 */
 
-  /* USER CODE END CRC_Init 2 */
+  /* USER CODE END SPI1_Init 2 */
 
 }
 

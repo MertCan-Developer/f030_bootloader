@@ -20,16 +20,17 @@ bootloader_cm0/Src/bl_cm0.o: ../bootloader_cm0/Src/bl_cm0.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_dma.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_dma_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_cortex.h \
- ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_crc.h \
- ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_crc_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr_ex.h \
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi.h \
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
+ C:/Users/Mert/STM32CubeIDE/workspace_1.15.0/NEW_WORKSPACE/f030_bootloader/crc/Inc/crc.h \
  ../Core/Inc/main.h ../Drivers/CMSIS/Include/cmsis_gcc.h
 C:/Users/Mert/STM32CubeIDE/workspace_1.15.0/NEW_WORKSPACE/f030_bootloader/bootloader_cm0/Inc/bl_cm0.h:
 ../Core/Inc/cm_boot.h:
@@ -52,15 +53,16 @@ C:/Users/Mert/STM32CubeIDE/workspace_1.15.0/NEW_WORKSPACE/f030_bootloader/bootlo
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_dma.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_dma_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_cortex.h:
-../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_crc.h:
-../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_crc_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr_ex.h:
+../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi.h:
+../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
+C:/Users/Mert/STM32CubeIDE/workspace_1.15.0/NEW_WORKSPACE/f030_bootloader/crc/Inc/crc.h:
 ../Core/Inc/main.h:
 ../Drivers/CMSIS/Include/cmsis_gcc.h:

@@ -29,4 +29,5 @@ Core/Src \
 Core/Startup \
 Drivers/STM32F0xx_HAL_Driver/Src \
 bootloader_cm0/Src \
+crc/Src \
 

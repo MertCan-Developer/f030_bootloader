@@ -9,6 +9,7 @@
 #define INC_BL_CM0_H_
 
 #include "cm_boot.h"
+#include "crc.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdarg.h"
@@ -71,10 +72,6 @@ extern uint8_t command;
 /********** Correction Flags for Every Part of Firmware Which Came From Host **********/
 #define BL_CRCTN_TRUE	0xAA	// The part of firmware is not corrupted
 #define BL_CRCTN_FALSE	0xFF	// The part of firmware is corrupted
-
-/********** Bootloader ACK/NACK Definitions **********/
-#define BL_ACK		0x7A
-#define BL_NACK		0x7F
 
 /********** Bootloader Command Definitions **********/
 #define BL_CMD_GET_CHIP_ID	0x00	// Command for reading chip ID
