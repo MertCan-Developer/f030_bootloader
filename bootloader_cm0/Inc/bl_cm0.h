@@ -43,7 +43,7 @@
  * |       |           |        |         |         |         |         |         |       |
  * | Start | Indicator | Number | 		  |         |         |         |         | Stop  |
  * | byte  |   Byte    |   of   | Chunk-1 | Chunk-2 |   ...   | CRC16_H | CRC16_L | byte  |
-   |       |           | Chunks |         |         |         |         |         |       |
+   |       |           | Chunks |(256Byte)|(256Byte)|         |         |         |       |
  * |_______|___________|________|_________|_________|_________|_________|_________|_______|
  *
  * There should be 259 bytes array to store data. The reason to be 259-bytes is last chunk.
