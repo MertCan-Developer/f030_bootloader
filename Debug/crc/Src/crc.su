@@ -1,2 +1,2 @@
-../crc/Src/crc.c:14:9:crc_calc_crc8	32	static
-../crc/Src/crc.c:51:10:crc_calc_crc16	32	static
+../crc/Src/crc.c:15:9:crc_calc_crc8	32	static
+../crc/Src/crc.c:52:10:crc_calc_crc16	24	static

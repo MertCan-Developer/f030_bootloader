@@ -39,45 +39,59 @@
 
 /*
  * 	##########   DATA FRAME OF SENDING FIRMWARE TO BOOTLOADER FOR WRITING IT TO THE FLASH AREA   ##########
- *  _______ ___________ ________ _________ _________ _________ _________ _________ _______
- * |       |           |        |         |         |         |         |         |       |
- * | Start | Indicator | Number | 		  |         |         |         |         | Stop  |
- * | byte  |   Byte    |   of   | Chunk-1 | Chunk-2 |   ...   | CRC16_H | CRC16_L | byte  |
-   |       |           | Chunks |(256Byte)|(256Byte)|         |         |         |       |
- * |_______|___________|________|_________|_________|_________|_________|_________|_______|
+ *  _______ ___________ ________ _________ _________ _________ _______
+ * |       |           |        |         |         |         |       |
+ * | Start | Indicator | Number | 		  |         |         | Stop  |
+ * | byte  |   Byte    |   of   | Chunk-x | CRC16_H | CRC16_L | byte  |
+   |       |           | Chunks |(256Byte)|         |         |       |
+ * |_______|___________|________|_________|_________|_________|_______|
  *
- * There should be 259 bytes array to store data. The reason to be 259-bytes is last chunk.
- * At the last tranmission operation CRC16_H, CRC16_L and Stop byte will be sent with 256-bytes chunk.
- * That's why the size of buffer should be 259 bytes. So at the beginning there will be 258-bytes in the
- * 259-bytes of array and at the end 259-bytes of array will be completely full. But 259-bytes of array
- * will not be completely full while sending the chunks between. There will be just 256-bytes of data in
- * the array. That's why array's first and last bytes should be controlled.
+ * Data transmission will 262-bytes for the data frame which is above. Firmware will be send chunk by chunk
+ * as number of chunks as with the data frame like above.
+ * When the count of frame which is received from host device is equal to number of chunks then micro controller
+ * realizes that the firmware transmission is ended and waits for the final CRC16 data frame tranmission to
+ * compare the total CRC16 value which is received from host device with calculated one to verify the firmware.
+ */
+
+/*
+ * 	##########   DATA FRAME OF TOTAL CRC16 VALUE  ##########
+ *  _______ ___________ _________ _________ ______
+ * |       |           |         |         |      |
+ * | Start | Indicator |  Total	 |  Total  | Stop |
+ * | byte  |   Byte    | CRC16_H | CRC16_L | byte |
+   |       |           |         |         |      |
+ * |_______|___________|_________|_________|______|
+ *
+ * This frame receiving from the host device after all firmware frames received with the individual CRC16 values.
+ * This frame for receive and compare whole firmware's total CRC16 value.
+ * When the target device received this frame, compares total CRC16 values with the CRC16 value which is calculated
+ * in itself.
  */
 
 extern UART_HandleTypeDef huart1;
 #define _USART1		&huart1
 
 #define FLASH_SECTOR5_ADDR			0x08006000U
-#define APP_PAGE_COUNT				20
+#define APP_PAGE_COUNT				35
 #define SRAM_BASE_u      			0x20000000
 #define VECT_TABLE_SIZE 			0xC0  						// 48 vectors * 4 bytes
 
 extern uint8_t command;
+extern struct crc_s crc8;
 
-/********** Bootloader command or data indication flags **********/
-#define BL_CMD			0xCC
-#define BL_DATA			0xDD
-
-
-/********** Correction Flags for Every Part of Firmware Which Came From Host **********/
-#define BL_CRCTN_TRUE	0xAA	// The part of firmware is not corrupted
-#define BL_CRCTN_FALSE	0xFF	// The part of firmware is corrupted
+/********** Bootloader indicator byte definitions **********/
+#define BL_START		0x24	// Start byte
+#define BL_IND_CMD			0xCC	// Command data frame indicator
+#define BL_IND_DATA			0xDD	// Firmware data frame indicator
+#define BL_IND_CRC			0xFF	// Final CRC data frame indicator
 
 /********** Bootloader Command Definitions **********/
 #define BL_CMD_GET_CHIP_ID	0x00	// Command for reading chip ID
 #define BL_CMD_ERASE_MEM	0x01	// Command for erasing 1 byte from specified memory address
 #define BL_CMD_GET_CRC16	0x02	// Command for getting CRC16 value of sent firmware
 #define BL_CMD_JMP_TO_APP	0x03	// Command for jumping to application code
+#define BL_CMD_GET_STATUS	0x04	// Command for getting status of bootlaoder
+#define BL_CMD_RESTART		0x05	// Command for restarting device
 
 // Function for printing messages to terminal via USART
 void bl_usart_printf(char *format,...);
@@ -89,7 +103,7 @@ void bl_jump_to_app(void);
 void bl_write_mem_256_bytes(uint8_t* data, uint32_t addr);
 
 // Function for erase 20kB application code area in flash
-void bl_erase_20kB_mem(void);
+void bl_erase_35kB_mem(void);
 
 // Function for read firmware from flash area
 void bl_read_mem_256_bytes(uint8_t* data, uint32_t addr);

@@ -32,7 +32,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define MAX_SIZE_OF_ARRAY			(uint16_t)260
+#define MAX_SIZE_OF_ARRAY			(uint16_t)262
+#define CHUNK_FW_BYTE_SIZE			(uint16_t)256
+
 
 /* USER CODE END PD */
 
@@ -45,12 +47,14 @@
 SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
-uint8_t DataFrame[MAX_SIZE_OF_ARRAY];
+uint8_t DataFrame[MAX_SIZE_OF_ARRAY] = {0};
+uint8_t chunk_fw[CHUNK_FW_BYTE_SIZE] = {0};
+uint8_t chunks_crc16_reasults[100] = {0};
 volatile uint8_t data_ready_flag = 0;
 uint8_t command = 0;
-uint8_t msg = 85;
 uint8_t  crc8_val = 0;
 uint16_t crc16_val = 0;
 char bl_ack[]  = "BL_ACK\r\n\n";
@@ -60,12 +64,20 @@ struct crc_s crc16 = {0};
 uint8_t num_of_chunks = 0;
 uint8_t chunk_count = 0;
 uint8_t chunk_crc = 0;
+uint16_t B=0;
+uint16_t crc_reg = 0xFFFF;			// Initial value
+uint16_t poly	 = 0x1021;			// CRC16 polynom
+uint32_t flash_fw_addr = FLASH_SECTOR5_ADDR;
+uint8_t erase_count = 0;
+uint16_t chunks_total_crc16_val = 0;
+uint16_t total_crc16_from_host = 0;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
@@ -106,16 +118,21 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart1, DataFrame, 259);
+	HAL_UART_Receive_DMA(&huart1, DataFrame, 262);
 
-  crc8.width  	 	= 8;
-  crc8.length 	 	= 3;
-  crc8.init		 	= 0;
-  crc8.reflect_in 	= 0;
-  crc8.reflect_out	= 0;
+	crc8.width  	 	= 8;
+	crc8.length 	 	= 3;
+	crc8.init		 	= 0;
+	crc8.reflect_in 	= 0;
+	crc8.reflect_out	= 0;
+
+	crc16.length 		= 259;
+	crc16.width  	 	= 8;
+
 
   /* USER CODE END 2 */
 
@@ -127,42 +144,59 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  if((data_ready_flag == 1) && (DataFrame[1] == BL_CMD))
+//	  crc16_val = crc_calc_crc16(&crc16);
+
+
+	  if((data_ready_flag == 1) && (DataFrame[1] == BL_IND_CMD))
 	  {
 		  data_ready_flag = 0;
-		  memcpy(crc8.cmd, &DataFrame[0], 5);
 		  crc8_val = crc_calc_crc8(&crc8);
 
 		  if(crc8_val == DataFrame[3])
 		  {
 			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
-			  bl_execute_cmd(command);
+			  HAL_Delay(5);
+			  bl_execute_cmd(crc8.cmd[2]);
 		  }
 		  else
 		  {
 			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+			  Error_Handler();
 		  }
 	  }
-	  else if((data_ready_flag == 1) && (DataFrame[1] == BL_DATA))
+	  else if((data_ready_flag == 1) && (DataFrame[1] == BL_IND_DATA))
 	  {
 		  data_ready_flag = 0;
-		  memcpy(crc16.firmware, &DataFrame[0], 260);
-		  bl_write_mem_256_bytes((uint8_t*)&crc16.firmware[3], (uint32_t)FLASH_SECTOR5_ADDR);
 		  crc16_val = crc_calc_crc16(&crc16);
 
-		  if(crc16_val == ((DataFrame[num_of_chunks + 4] << 8) | (DataFrame[num_of_chunks + 5]))  && (chunk_count == num_of_chunks))
+		  if(crc16_val == ((DataFrame[259] << 8) | (DataFrame[260])))
 		  {
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
+			  erase_count++;
+			  if(erase_count == 1) bl_erase_35kB_mem();
+			  bl_write_mem_256_bytes(&crc16.firmware[3], flash_fw_addr);
+			  flash_fw_addr += 0x100;
+			  chunks_total_crc16_val += crc16_val;
 		  }
-		  else if(crc16_val != ((DataFrame[num_of_chunks + 4] << 8) | (DataFrame[num_of_chunks + 5])) && (chunk_count > num_of_chunks))
+		  else
 		  {
 			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
-			  bl_erase_20kB_mem();
+			  Error_Handler();
 		  }
 	  }
-
-
-
+	  else if((data_ready_flag == 1) && (DataFrame[1] == BL_IND_CRC))
+	  {
+		  if((chunk_count == num_of_chunks) && (chunks_total_crc16_val == total_crc16_from_host))
+		  {
+			  data_ready_flag = 0;
+			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
+		  }
+		  else
+		  {
+			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+			  bl_erase_35kB_mem();
+			  Error_Handler();
+		  }
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -288,6 +322,22 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel2_3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -312,22 +362,30 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if((huart->Instance == USART1) )
 	{
-		if((DataFrame[1] == 204) && (DataFrame[0] == 36))
+		if((DataFrame[1] == BL_IND_CMD) && (DataFrame[0] == BL_START))
 		{
 			data_ready_flag = 1;
-			memcpy(&command, &DataFrame[2], 1);
+			memcpy(crc8.cmd, &DataFrame[0], 5);
 		}
-		else if((DataFrame[1] == 221) && (DataFrame[0] == 36))
+		else if((DataFrame[1] == BL_IND_DATA) && (DataFrame[0] == BL_START))
 		{
 			data_ready_flag = 1;
 			num_of_chunks = DataFrame[2];	// Number of chunks sent by host device
+			memcpy(&crc16.firmware[0], &DataFrame[0], MAX_SIZE_OF_ARRAY);
+			chunk_count++;
+		}
+		else if((DataFrame[1] == BL_IND_CRC) && (DataFrame[0] == BL_START))
+		{
+			data_ready_flag = 1;
+			total_crc16_from_host = (DataFrame[2] << 8) | (DataFrame[3] & 0xFF);
 		}
 		else
 		{
-			memset((void*)&DataFrame[0], 0, 259);
+			memset((void*)&DataFrame[0], 0, 262);
 		}
 	}
-	HAL_UART_Receive_IT(&huart1, DataFrame, 259);
+//	HAL_UART_Receive_IT(&huart1, DataFrame, 262);
+	HAL_UART_Receive_DMA(&huart1, DataFrame, 262);
 }
 
 /* USER CODE END 4 */

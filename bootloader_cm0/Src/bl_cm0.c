@@ -12,7 +12,6 @@
 __attribute__((section(".ram_isr_vector"))) struct cm0_vectable_ ram_vectable;
 uint32_t APP_START_ADDR	 = 	FLASH_SECTOR5_ADDR;
 uint32_t  flash_addr	 = 	(uint32_t)0x08006000U; 			// Variable for erasing and flashing flash memory
-uint16_t i=0;
 
 // Function for printing messages to terminal via USART
 void bl_usart_printf(char *format,...)
@@ -40,7 +39,7 @@ void bl_jump_to_app(void)
 
 	bl_usart_printf("BL_DBG_MSG: Bootloader jump to user app\r\n");
 	bl_usart_printf("BL_DBG_MSG: App reset handler addr: %#x\r\n\n\n\n", reset_handler);
-	HAL_Delay(5000);
+	HAL_Delay(3000);
 
 	disable_unpend_all_ints();
 	vectable_setup(APP_START_ADDR);
@@ -49,7 +48,7 @@ void bl_jump_to_app(void)
 }
 
 // Function for erase 20kB application code area in flash
-void bl_erase_20kB_mem(void)
+void bl_erase_35kB_mem(void)
 {
 	FLASH_EraseInitTypeDef flash = {0};				// Flash erasing object
 	HAL_FLASH_Unlock();								// Unlocks the flash to erase
@@ -62,7 +61,7 @@ void bl_erase_20kB_mem(void)
 	HAL_FLASHEx_Erase(&flash, &PageError);
 
 	HAL_FLASH_Lock();								// Locks the flash
-	bl_usart_printf("### Erased 20kB application code pages. Page error code: 0x%08lX ###\r\n", PageError);
+	bl_usart_printf("### Erased 35kB application code pages. Page error code: 0x%08lX ###\r\n", PageError);
 }
 
 // Function for write firmware to flash area
@@ -73,14 +72,14 @@ void bl_write_mem_256_bytes(uint8_t* data, uint32_t addr)
 
 	HAL_FLASH_Unlock();
 	// Flashing the flash area of code
-	for(; i<256; i+=4)
+	for(uint16_t i=0; i<256; i+=4)
 	{
 		/*
 		 * Writing firmware to flash word by word
 		 */
 		word = data[i]				// LSB byte
 			 | (data[i+1] << 8)		// Next byte
-			 | (data[i+2] << 16)		// Next byte
+			 | (data[i+2] << 16)	// Next byte
 			 | (data[i+3] << 24);	// MSB byte
 		/*
 		 * As total we have 4 bytes at once. So flashing 4 bytes to flash at once, there will be 64 iterations
@@ -88,10 +87,13 @@ void bl_write_mem_256_bytes(uint8_t* data, uint32_t addr)
 		 */
 
 		// Flashing flash memory
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, word);
+		if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, word) != HAL_OK)
+		{
+			Error_Handler();
+		}
 
 		// Increasing the address of memory to write next memory area
-		flash_addr += 4;
+		addr += 4;
 	}
 	HAL_FLASH_Lock();								// Locking the flash
 }
@@ -105,7 +107,7 @@ void bl_execute_cmd(uint8_t cmd)
 		bl_jump_to_app();
 		break;
 	case BL_CMD_ERASE_MEM:	// Erasing 20kB application code area
-		bl_erase_20kB_mem();
+		bl_erase_35kB_mem();
 		break;
 	case BL_CMD_GET_CHIP_ID:
 		// Read Chip ID section from flash and send to host
@@ -127,14 +129,14 @@ void bl_data_frame_parser(uint8_t* data_frame)
 		Error_Handler();
 	}
 
-	if(data_frame[1] == BL_CMD)
+	if(data_frame[1] == BL_IND_CMD)
 	{
 		command = data_frame[2];
 
 
 		//CRC8 Calculation for the bytes before CRC8 section
 
-		bl_execute_cmd(command);
+		bl_execute_cmd(crc8.cmd[2]);
 
 		if(data_frame[4] != '!')
 		{

@@ -8,7 +8,8 @@
 
 #include "crc.h"
 
-extern uint8_t DataFrame[260];
+extern uint8_t DataFrame[262];
+extern uint16_t crc16_test_data[2];
 
 // CRC8 Calculation function
 uint8_t crc_calc_crc8(struct crc_s* crc8)
@@ -52,60 +53,22 @@ uint16_t crc_calc_crc16(struct crc_s* crc16)
 {
 	uint16_t crc_reg = 0xFFFF;			// Initial value
 	uint16_t poly	 = 0x1021;			// CRC16 polynom
-	uint8_t* src;
 
-	if(DataFrame[1] == 0xDD)			// Is the data frame the firmware frame?
+	for(uint16_t B=0; B<259; B++)					// Bytes of message
 	{
-		src = DataFrame;
-	}
-	else if(DataFrame[1] == 0xCC)		// Is data frame command frame?
-	{									// If it's true then code enters to Error Handler function.
-		Error_Handler();				// Because in firmware frame there is no CRC8 calculation.
-	}
+		crc_reg ^= (crc16->firmware[B] << 8);				// Bytes of messages
 
-	// Calculating CRC16 value for "START BYTE + Inidicator Byte + Num of Chunks Byte + First Chunk"
-	if(chunk_count == 0)
-	{
-		for(uint8_t B=0; B<3; B++)
+		for(uint8_t b=0; b<8; b++)							// bits of message's byte
 		{
-			crc_reg ^= src[B];
-
-			for(uint8_t b=0; b<8; b++)
+			if(crc_reg & 0x8000)							// Controlling first bit of dividend if it is 1 or not
 			{
-				if(crc_reg & 0x8000)
-				{
-					crc_reg = (crc_reg << 1) ^ poly;
-				}
-				else
-				{
-					crc_reg <<= 1;
-				}
+				crc_reg = (crc_reg << 1) ^ poly;			// Shifting by 1 and XOR operation with divisor
+			}
+			else
+			{
+				crc_reg <<= 1;								// CRC value (message) shifting by 1 if firts bit is not 1
 			}
 		}
-		chunk_count++;
 	}
-
-	// Calculating CRC16 for only chunk section
-	if((chunk_count > 0) && (chunk_count < num_of_chunks))
-	{
-		for(uint8_t B=3; B<(crc16->length - 3); B++)
-		{
-			crc_reg ^= src[B];
-
-			for(uint8_t b=0; b<8; b++)
-			{
-				if(crc_reg & 0x8000)
-				{
-					crc_reg = (crc_reg << 1) ^ poly;
-				}
-				else
-				{
-					crc_reg <<= 1;
-				}
-			}
-		}
-		chunk_count++;
-	}
-
 	return crc_reg;
 }
