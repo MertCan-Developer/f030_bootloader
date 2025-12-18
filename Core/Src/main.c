@@ -71,6 +71,8 @@ uint32_t flash_fw_addr = FLASH_SECTOR5_ADDR;
 uint8_t erase_count = 0;
 uint16_t chunks_total_crc16_val = 0;
 uint16_t total_crc16_from_host = 0;
+uint16_t chunk_crc16_val_from_host = 0;
+bl_error_s bl_error;
 
 /* USER CODE END PV */
 
@@ -144,9 +146,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-//	  crc16_val = crc_calc_crc16(&crc16);
-
-
 	  if((data_ready_flag == 1) && (DataFrame[1] == BL_IND_CMD))
 	  {
 		  data_ready_flag = 0;
@@ -154,13 +153,13 @@ int main(void)
 
 		  if(crc8_val == DataFrame[3])
 		  {
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
+			  bl_usart_printf("BL_ACK\r\nCRC8 value of command frame has matched with the calculated one...\r\n");
 			  HAL_Delay(5);
 			  bl_execute_cmd(crc8.cmd[2]);
 		  }
 		  else
 		  {
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+			  bl_usart_printf("BL_NACK\r\nCRC8 value of command data frame has not matched with the calculated one...\r\nError code: 0x%x\r\n", COMMAND_CRC8_ERROR);
 			  Error_Handler();
 		  }
 	  }
@@ -168,18 +167,20 @@ int main(void)
 	  {
 		  data_ready_flag = 0;
 		  crc16_val = crc_calc_crc16(&crc16);
+		  chunk_crc16_val_from_host = ((DataFrame[259] << 8) | (DataFrame[260]));
 
-		  if(crc16_val == ((DataFrame[259] << 8) | (DataFrame[260])))
+		  if(crc16_val == chunk_crc16_val_from_host)
 		  {
 			  erase_count++;
 			  if(erase_count == 1) bl_erase_35kB_mem();
 			  bl_write_mem_256_bytes(&crc16.firmware[3], flash_fw_addr);
+			  bl_usart_printf("BL_ACK\r\nFirmware chunk has written to flash area...\r\n\r\n");
 			  flash_fw_addr += 0x100;
 			  chunks_total_crc16_val += crc16_val;
 		  }
 		  else
 		  {
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+			  bl_usart_printf("BL_NACK\r\nThe chunk number which is could not written to flash is %d\r\nError code: 0x%x\r\n", chunk_count, CHUNK_CRC16_ERROR);
 			  Error_Handler();
 		  }
 	  }
@@ -188,11 +189,11 @@ int main(void)
 		  if((chunk_count == num_of_chunks) && (chunks_total_crc16_val == total_crc16_from_host))
 		  {
 			  data_ready_flag = 0;
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_ack, 9, 1000);
+			  bl_usart_printf("BL_ACK\r\nTotal firmware chunk has matched wtih calculated...\r\n");
 		  }
 		  else
 		  {
-			  HAL_UART_Transmit(&huart1, (uint8_t*)&bl_nack, 10, 1000);
+			  bl_usart_printf("BL_NACK\r\nTotal CRC16 value doesn't match with calculated...\r\nError code: 0x%x\r\n", TOTAL_CRC16_ERROR);
 			  bl_erase_35kB_mem();
 			  Error_Handler();
 		  }

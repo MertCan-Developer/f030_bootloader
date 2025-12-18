@@ -79,6 +79,14 @@ extern UART_HandleTypeDef huart1;
 extern uint8_t command;
 extern struct crc_s crc8;
 
+// Enumeration structure for error types
+typedef enum
+{
+	CHUNK_CRC16_ERROR = 0x01,
+	TOTAL_CRC16_ERROR = 0x02,
+	COMMAND_CRC8_ERROR = 0x03,
+}bl_error_s;
+
 /********** Bootloader indicator byte definitions **********/
 #define BL_START		0x24	// Start byte
 #define BL_IND_CMD			0xCC	// Command data frame indicator
